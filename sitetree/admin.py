@@ -237,18 +237,22 @@ def redirects_handler(*args, **kwargs):
     introduced in Django 1.4 by url handling changes.
 
     """
-    referer = args[0].META['HTTP_REFERER']
+    request = args[0]
+    referer = request.META.get('HTTP_REFERER')
     shift = '../'
 
-    if 'delete' in referer:
-        # Weird enough 'delete' is not handled by TreeItemAdmin::response_change().
-        shift += '../'
-    elif 'history' in referer:
-        if 'item_id' not in kwargs:
-            # Encountered request from history page to return to tree layout page.
+    if referer:
+        if 'delete' in referer:
+            # Weird enough 'delete' is not handled by TreeItemAdmin::response_change().
             shift += '../'
-
-    return HttpResponseRedirect(referer + shift)
+        elif 'history' in referer:
+            if 'item_id' not in kwargs:
+                # Encountered request from history page to return to tree layout page.
+                shift += '../'
+        return HttpResponseRedirect(referer + shift)
+    else:
+        # redirect to root changelist
+        return HttpResponseRedirect(request.path_info + shift)
 
 
 class TreeAdmin(admin.ModelAdmin):

@@ -2,8 +2,23 @@ django-sitetree
 ===============
 http://github.com/idlesign/django-sitetree
 
-.. image:: https://pypip.in/d/django-sitetree/badge.png
-        :target: https://crate.io/packages/django-sitetree
+.. image:: https://img.shields.io/pypi/v/django-sitetree.svg
+    :target: https://pypi.python.org/pypi/django-sitetree
+
+.. image:: https://img.shields.io/pypi/dm/django-sitetree.svg
+    :target: https://pypi.python.org/pypi/django-sitetree
+
+.. image:: https://img.shields.io/pypi/l/django-sitetree.svg
+    :target: https://pypi.python.org/pypi/django-sitetree
+
+.. image:: https://img.shields.io/coveralls/idlesign/django-sitetree/master.svg
+    :target: https://coveralls.io/r/idlesign/django-sitetree
+
+.. image:: https://img.shields.io/travis/idlesign/django-sitetree/master.svg
+    :target: https://travis-ci.org/idlesign/django-sitetree
+
+.. image:: https://img.shields.io/codeclimate/github/idlesign/django-sitetree.svg
+   :target: https://codeclimate.com/github/idlesign/django-sitetree
 
 
 What's that
@@ -36,8 +51,3 @@ Documentation
 -------------
 
 http://django-sitetree.readthedocs.org/
-
-
-
-.. image:: https://d2weczhvl823v0.cloudfront.net/idlesign/django-sitegate/trend.png
-        :target: https://bitdeli.com/free

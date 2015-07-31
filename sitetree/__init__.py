@@ -1,1 +1,4 @@
-VERSION = (0, 12, 0)
+VERSION = (1, 4, 0)
+
+
+default_app_config = 'sitetree.config.SitetreeConfig'

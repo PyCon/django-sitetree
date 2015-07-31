@@ -2,9 +2,22 @@ Getting started
 ===============
 
 1. Add the **sitetree** application to INSTALLED_APPS in your settings file (usually 'settings.py').
-2. Check that *django.core.context_processors.request* is enabled in TEMPLATE_CONTEXT_PROCESSORS in your settings file.
+2. Check that *django.core.context_processors.request* is added to TEMPLATE_CONTEXT_PROCESSORS in your settings file.
+   For Django 1.8+: *django.template.context_processors.request* should be defined in ``TEMPLATES/OPTIONS/context_processors``.
 3. Check that *django.contrib.auth.context_processors.auth* is enabled in TEMPLATE_CONTEXT_PROCESSORS too.
-4. Run './manage.py syncdb' to install sitetree tables into database.
+4. Run ``./manage.py syncdb`` to install sitetree tables into database (``./manage.py migrate`` for Django 1.7+).
+
+    .. warning::
+
+        Those, who are using South <1.0 for migrations with Django <1.7, add this into settings file:
+
+        .. code-block:: python
+
+            SOUTH_MIGRATION_MODULES = {
+                'sitetree': 'sitetree.south_migrations',
+            }
+
+
 5. Go to Django Admin site and add some trees and tree items (see :ref:`Making tree <making-tree>` section).
 6. Add *{% load sitetree %}* tag to the top of a template.
 
@@ -14,19 +27,6 @@ Now you can use the following template tags:
   + :ref:`sitetree_tree <tag-tree>` - to render site tree;
   + :ref:`sitetree_page_title <tag-page-title>` - to render current page title resolved against definite sitetree.
   + :ref:`sitetree_page_description <tag-page-description>` - to render current page description resolved against definite sitetree.
-
-
-Upgrade hint
-------------
-
-When switching from older version of SiteTree to newer do not forget to upgrade your database schema.
-
-That could be done with the following command issued in your Django project directory::
-
-./manage.py migrate
-
-Note that the command **requires** `South <http://south.aeracode.org/>`_.
-
 
 
 .. _making-tree:

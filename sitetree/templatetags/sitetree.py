@@ -1,11 +1,13 @@
 from django import template
+from django.template.loader import get_template
+from django.template.base import FilterExpression
 
-from ..sitetreeapp import SiteTree
+from ..sitetreeapp import get_sitetree
 
 register = template.Library()
 
 # All utility methods are implemented in SiteTree class
-sitetree = SiteTree()
+sitetree = get_sitetree()
 
 
 @register.tag
@@ -31,7 +33,8 @@ def sitetree_tree(parser, token):
         tree_alias = parser.compile_filter(tokens[2])
         return sitetree_treeNode(tree_alias, use_template)
     else:
-        raise template.TemplateSyntaxError("%r tag requires two arguments. E.g. {%% sitetree_tree from \"mytree\" %%}." % tokens[0])
+        raise template.TemplateSyntaxError(
+            '%r tag requires two arguments. E.g. {%% sitetree_tree from "mytree" %%}.' % tokens[0])
 
 
 @register.tag
@@ -52,12 +55,17 @@ def sitetree_children(parser, token):
     use_template = detect_clause(parser, 'template', tokens)
     tokens_num = len(tokens)
 
-    if tokens_num == 5 and tokens[1] == 'of' and tokens[3] == 'for' and tokens[4] in ('menu', 'sitetree') and use_template is not None:
+    clauses_in_places = (
+        tokens_num == 5 and tokens[1] == 'of' and tokens[3] == 'for' and tokens[4] in ('menu', 'sitetree')
+    )
+    if clauses_in_places and use_template is not None:
         tree_item = tokens[2]
         navigation_type = tokens[4]
         return sitetree_childrenNode(tree_item, navigation_type, use_template)
     else:
-        raise template.TemplateSyntaxError("%r tag requires six arguments. E.g. {%% sitetree_children of someitem for menu template \"sitetree/mychildren.html\" %%}." % tokens[0])
+        raise template.TemplateSyntaxError(
+            '%r tag requires six arguments. '
+            'E.g. {%% sitetree_children of someitem for menu template "sitetree/mychildren.html" %%}.' % tokens[0])
 
 
 @register.tag
@@ -83,7 +91,8 @@ def sitetree_breadcrumbs(parser, token):
         tree_alias = parser.compile_filter(tokens[2])
         return sitetree_breadcrumbsNode(tree_alias, use_template)
     else:
-        raise template.TemplateSyntaxError("%r tag requires two arguments. E.g. {%% sitetree_breadcrumbs from \"mytree\" %%}." % tokens[0])
+        raise template.TemplateSyntaxError(
+            '%r tag requires two arguments. E.g. {%% sitetree_breadcrumbs from "mytree" %%}.' % tokens[0])
 
 
 @register.tag
@@ -114,7 +123,9 @@ def sitetree_menu(parser, token):
         tree_branches = parser.compile_filter(tokens[4])
         return sitetree_menuNode(tree_alias, tree_branches, use_template)
     else:
-        raise template.TemplateSyntaxError("%r tag requires four arguments. E.g. {%% sitetree_menu from \"mytree\" include \"trunk,1,level3\" %%}." % tokens[0])
+        raise template.TemplateSyntaxError(
+            '%r tag requires four arguments. '
+            'E.g. {%% sitetree_menu from "mytree" include "trunk,1,level3" %%}.' % tokens[0])
 
 
 @register.tag
@@ -128,17 +139,13 @@ def sitetree_url(parser, token):
     as_var = False
 
     if tokens_num >= 3 and tokens[1] == 'for':
-        # TODO Remove additional tag arguments in 1.0.
         if tokens[-2] == 'as':
             as_var = tokens[-1]
             tokens = tokens[:-2]
         sitetree_item = parser.compile_filter(tokens[2])
-        tag_arguments = list(map(parser.compile_filter, tokens[3:]))
-        if not tag_arguments:
-            tag_arguments = None
-        return sitetree_urlNode(sitetree_item, as_var, tag_arguments)
+        return sitetree_urlNode(sitetree_item, as_var)
     else:
-        raise template.TemplateSyntaxError("%r tag should look like {%% sitetree_url for someitem params %%}." % tokens[0])
+        raise template.TemplateSyntaxError('%r tag should look like {%% sitetree_url for someitem %%}.' % tokens[0])
 
 
 @register.tag
@@ -150,7 +157,8 @@ def sitetree_page_title(parser, token):
         tree_alias = parser.compile_filter(tokens[2])
         return sitetree_page_titleNode(tree_alias)
     else:
-        raise template.TemplateSyntaxError("%r tag requires two arguments. E.g. {%% sitetree_page_title from \"mytree\" %%}." % tokens[0])
+        raise template.TemplateSyntaxError(
+            '%r tag requires two arguments. E.g. {%% sitetree_page_title from "mytree" %%}.' % tokens[0])
 
 
 @register.tag
@@ -162,7 +170,8 @@ def sitetree_page_description(parser, token):
         tree_alias = parser.compile_filter(tokens[2])
         return sitetree_page_descriptionNode(tree_alias)
     else:
-        raise template.TemplateSyntaxError("%r tag requires two arguments. E.g. {%% sitetree_page_description from \"mytree\" %%}." % tokens[0])
+        raise template.TemplateSyntaxError(
+            '%r tag requires two arguments. E.g. {%% sitetree_page_description from "mytree" %%}.' % tokens[0])
 
 
 @register.tag
@@ -174,7 +183,8 @@ def sitetree_page_hint(parser, token):
         tree_alias = parser.compile_filter(tokens[2])
         return sitetree_page_hintNode(tree_alias)
     else:
-        raise template.TemplateSyntaxError("%r tag requires two arguments. E.g. {%% sitetree_page_hint from \"mytree\" %%}." % tokens[0])
+        raise template.TemplateSyntaxError(
+            '%r tag requires two arguments. E.g. {%% sitetree_page_hint from "mytree" %%}.' % tokens[0])
 
 
 class sitetree_treeNode(template.Node):
@@ -229,13 +239,12 @@ class sitetree_menuNode(template.Node):
 class sitetree_urlNode(template.Node):
     """Resolves and renders specified url."""
 
-    def __init__(self, sitetree_item, as_var, tag_arguments):
+    def __init__(self, sitetree_item, as_var):
         self.sitetree_item = sitetree_item
-        self.tag_arguments = tag_arguments
         self.as_var = as_var
 
     def render(self, context):
-        resolved_url = sitetree.url(self.sitetree_item, self.tag_arguments, context)
+        resolved_url = sitetree.url(self.sitetree_item, context)
         if self.as_var:
             context[self.as_var] = resolved_url
             return ''
@@ -294,10 +303,10 @@ def render(context, tree_items, use_template):
     context.push()
     context['sitetree_items'] = tree_items
 
-    if isinstance(use_template, template.FilterExpression):
+    if isinstance(use_template, FilterExpression):
         use_template = use_template.resolve(context)
 
-    content = template.loader.get_template(use_template).render(context)
+    content = get_template(use_template).render(context)
     context.pop()
 
     return content

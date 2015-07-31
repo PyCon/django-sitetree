@@ -1,3 +1,4 @@
+from django.conf import settings as django_settings
 from django.core.urlresolvers import get_urlconf, get_resolver
 from django.utils.translation import ugettext_lazy as _
 from django.utils import six
@@ -7,9 +8,12 @@ from django.contrib.admin.sites import NotRegistered
 from django.contrib import messages
 from django.conf.urls import patterns, url
 
+from .settings import MODEL_TREE, MODEL_TREE_ITEM
 from .fields import TreeItemChoiceField
 from .utils import get_tree_model, get_tree_item_model, get_app_n_model
 
+
+SMUGGLER_INSTALLED = 'smuggler' in django_settings.INSTALLED_APPS
 
 MODEL_TREE_CLASS = get_tree_model()
 MODEL_TREE_ITEM_CLASS = get_tree_item_model()
@@ -76,6 +80,7 @@ def override_item_admin(admin_class):
 
 
 class TreeItemAdmin(admin.ModelAdmin):
+
     exclude = ('tree', 'sort_order')
     fieldsets = (
         (_('Basic settings'), {
@@ -97,13 +102,15 @@ class TreeItemAdmin(admin.ModelAdmin):
     filter_horizontal = ('access_permissions',)
     change_form_template = 'admin/sitetree/treeitem/change_form.html'
 
-    def response_add(self, request, obj, post_url_continue='../item_%s/', **kwargs):
+    def response_add(self, request, obj, post_url_continue=None, **kwargs):
         """Redirects to the appropriate items' 'continue' page on item add.
 
         As we administer tree items within tree itself, we
         should make some changes to redirection process.
 
         """
+        if post_url_continue is None:
+            post_url_continue = '../item_%s/' % obj.pk
         return super(TreeItemAdmin, self).response_add(request, obj, post_url_continue)
 
     def response_change(self, request, obj, **kwargs):
@@ -150,7 +157,9 @@ class TreeItemAdmin(admin.ModelAdmin):
             self._stack_known_urls(resolver.reverse_dict)
             self.known_url_rules = sorted(self.known_url_rules)
 
-        form.known_url_names_hint = _('You are seeing this warning because "URL as Pattern" option is active and pattern entered above seems to be invalid. Currently registered URL pattern names and parameters: ')
+        form.known_url_names_hint = _(
+            'You are seeing this warning because "URL as Pattern" option is active and pattern entered above '
+            'seems to be invalid. Currently registered URL pattern names and parameters: ')
         form.known_url_names = self.known_url_names
         form.known_url_rules = self.known_url_rules
         return form
@@ -195,9 +204,11 @@ class TreeItemAdmin(admin.ModelAdmin):
             sort_order = 'sort_order'
         else:
             sort_order = '-sort_order'
+
         siblings = MODEL_TREE_ITEM_CLASS._default_manager.filter(
             parent=current_item.parent,
-            tree=current_item.tree).order_by(sort_order)
+            tree=current_item.tree
+        ).order_by(sort_order)
 
         previous_item = None
         for item in siblings:
@@ -227,7 +238,8 @@ class TreeItemAdmin(admin.ModelAdmin):
             # No, you're not allowed to make item parent of itself
             if obj.parent is not None and obj.parent.id == obj.id:
                 obj.parent = self.previous_parent
-                messages.warning(request, _("Item's parent left unchanged. Item couldn't be parent to itself."), '', True)
+                messages.warning(
+                    request, _("Item's parent left unchanged. Item couldn't be parent to itself."), '', True)
         obj.tree = self.tree
         obj.save()
 
@@ -256,6 +268,7 @@ def redirects_handler(*args, **kwargs):
 
 
 class TreeAdmin(admin.ModelAdmin):
+
     list_display = ('alias', 'title')
     list_display_links = ('title', 'alias')
     search_fields = ['title', 'alias']
@@ -264,6 +277,10 @@ class TreeAdmin(admin.ModelAdmin):
     change_form_template = 'admin/sitetree/tree/change_form.html'
 
     def __init__(self, *args, **kwargs):
+
+        if SMUGGLER_INSTALLED:
+            self.change_list_template = 'admin/sitetree/tree/change_list_.html'
+
         super(TreeAdmin, self).__init__(*args, **kwargs)
         self.tree_admin = _ITEM_ADMIN()(MODEL_TREE_ITEM_CLASS, admin.site)
 
@@ -286,7 +303,21 @@ class TreeAdmin(admin.ModelAdmin):
             url(r'^(?P<tree_id>\d+)/item_(?P<item_id>\d+)/move_(?P<direction>(up|down))/$',
                 self.admin_site.admin_view(self.tree_admin.item_move), name=get_tree_item_url_name('move')),
         )
+
+        if SMUGGLER_INSTALLED:
+            sitetree_urls += (url(r'^dump_all/$', self.admin_site.admin_view(self.dump_view), name='sitetree_dump'),)
+
         return sitetree_urls + urls
+
+    @classmethod
+    def dump_view(cls, request):
+        """Dumps sitetrees with items using django-smuggler.
+
+        :param request:
+        :return:
+        """
+        from smuggler.views import dump_to_response
+        return dump_to_response(request, [MODEL_TREE, MODEL_TREE_ITEM], filename_prefix='sitetrees')
 
 
 _reregister_tree_admin()
